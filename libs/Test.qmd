@@ -1,0 +1,145 @@
+---
+title: "Mapping Prosperity: The Nexus Between Wealth and Life Expectancy"
+date: 2024/04/25
+author: "Cormac Gleeson"
+format: html
+toc: true
+
+
+execute: 
+  echo: false
+  warning: false
+  message: false
+  
+theme: sandstone
+backgroundcolor: Lightgrey
+editor: visual
+subtitle: How GNI influences the Worlds Life Expectancy
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+# libraries
+library(tidyverse)
+library(plotly)
+library(countrycode)
+
+#data
+unicef_metadata <- read_csv("unicef_metadata.csv")
+unicef_indicator_1 <- read_csv("unicef_indicator_1.csv")
+unicef_metadata_1_ <- read_csv("unicef_metadata (1).csv")
+
+#transformations
+data_join <- full_join(unicef_metadata, unicef_indicator_1)
+data_join3 <- full_join(unicef_metadata_1_, data_join)
+
+
+
+
+```
+
+# Introduction
+
+This report will examine the impact a rise in GNI per capita has on a Nations overall life expectancy. In 1980, the average life expectancy, globally, was at 60.99 years old. Today, life expectancy sits at about 73.4 years old. However, this figure is largely misleading. Life expectancy has huge differences within each Country.
+
+Life expectancy has been slowly increasing in each Continent overtime. The following will explore this, and provide evidence as to why wealth increase has a significant effect on Life Expectancy.
+
+## Snapshot of the World in 1980
+
+The map below gives us a snapshot of where the World was in 1980. For instance, in 1980, *Ireland's Life Expectancy* was **72.60**. If we travel across to India, we find a *Life expectancy* of **53.60**. This disparity between Country's life expectancy is still common today, but it is converging. The *convergence* seen today is due to multiple factors such as:
+
+1.  Improvements to healthcare.
+2.  Food accessibility.
+3.  Access to clean water.
+
+```{r}
+#| fig-cap: The image above depicts the life expectancy of each Country around the world in the year 1980. At the time, the global average life expectancy was ~61. However, it is the disparities between each region that becomes most striking as you look at the Map. 
+
+   map_world <- map_data("world")
+   
+  data_join_1980 <- data_join %>% 
+  filter(year==1980)
+ 
+
+  map_data_1980<-full_join(data_join_1980, map_world, by =c("country" = "region"))
+
+  ggplot(map_data_1980) + 
+  aes(x = long, y = lat, group = group, fill = LifeExp) + 
+  geom_polygon() +
+scale_fill_gradient(low = "Orange", high = "red", na.value = "grey") + 
+  labs(title = "Life Expectancy in 1980", subtitle = "Countries in Grey have no data due to a name mismatch", caption = "Source: R Package {Unicef}", x = "Longitude", y = "Latitude", fill = "Life Expectancy") + theme_bw()
+```
+
+## The Growth of Life Expectancy Overtime
+
+The below **visualization** provides us with a more accurate showcase of Life expectancy growth over a period of 40 years. If we focus on Ireland's life expectancy, we now find it sits at *82.56*, whereas India sits at *67.80*. Not only can we find that both figures have significantly increased, but India is converging towards Ireland's life expectancy.
+
+```{r}
+data_join$Continent <- countrycode(data_join$country, origin = "country.name", destination = "continent")
+
+timeseries_plot_2 <-  data_join %>%
+  ggplot() + 
+  aes(year, LifeExp, group = country, color = Continent) +
+  geom_line() + labs(title = "Interactive Map showcasing the growth of Average Life Expectancy per Continent",
+subtitle = "Use the Sidetable to inspect each Continent, and Countries", 
+x = "Life Expectancy",
+y = "Year", 
+color = "Continent") + 
+theme_bw()
+
+ggplotly(timeseries_plot_2)
+
+```
+
+## GNI Growth Overtime
+
+The increase seen in life expectancy is also mirrored by **GNI per Capita growth**. Countries are developing more rapidly then ever before. This growth has also accompanyed the Global national income rate of the nation. The below **visualtisation** shows how each Continents, and countries within, is increasing yearly. There are, however, outliers to this phenomena. Sub Saharan Africa still experiences great difficulty in developing, likely due to their dependent nature left from colonialism.
+
+```{r}
+
+data_join3$Continent <- countrycode(data_join3$country, origin = "country.name", destination = "continent")
+
+
+
+  plot_ly(data = data_join3, x = ~year, y = ~`GNI (current US$)`, color = ~Continent, type = 'scatter', mode = 'lines') %>%
+    layout(title = "GNI Per Capita by Continent Over Time",
+           xaxis = list(title = "Year"),
+           yaxis = list(title = "GNI Per Capita"),
+           hovermode = "closest") 
+```
+
+## Why is this important?
+
+**Gross National Income (GNI) per capita** plays a vital role in determining the overall well-being and health outcomes of a population. As countries experience economic growth and an increase in GNI per capita, individuals often gain access to *improved healthcare services, access to water services, sanitation facilities, and education*. This leads to better nutrition, reduced exposure to environmental hazards, and increased access to medical treatments and preventive care. Consequently, higher GNI per capita is associated with longer life expectancy, as individuals are better equipped to address health challenges and lead healthier lifestyles.
+
+# 
+
+# Access to clean and efficient water services overtime
+
+With the rise in *GNI* experienced in every Continent, the proportion of individuals with access to only limited water services has **largely decreased overtime**.
+
+In recent years, access to limited water services has witnessed a decline as fewer people rely on inefficient water sources. This trend can be attributed to *advancements in water infrastructure, technological innovations, and increased investment in water management initiatives*. Governments and organizations have implemented policies and projects aimed at improving water supply systems, expanding access to clean and safe drinking water, and promoting water conservation practices. Additionally, awareness campaigns and educational efforts have raised public awareness about the importance of sustainable water usage and sanitation practices. As a result, communities have shifted away from relying on **unreliable or contaminated water sources** towards accessing more reliable and efficient water services, leading to a gradual decrease in the proportion of the population dependent on limited water services.
+
+There are, unfortunately, outliers to this, which can be viewed below, but mostly, each Continent, and it's countries are experiencing a *convergence to 0*, as less individuals are relying on limited water services.
+
+```{r}
+
+#| fig-cap: One of the most influenteiol ways GNI can effect a Nations life expectancy is through increasiing access to Water. 
+
+data_join3 <- data_join3 %>%
+  rename("Proportion Using Limited Drinking Water" = "Proportion of population using limited drinking water services (%)")
+
+data_join3_2000_2022 <-data_join3 %>% 
+filter( year >=2000)
+
+ggplot(data_join3_2000_2022) +
+  aes(`Proportion Using Limited Drinking Water`, year, color = Continent) +
+  geom_point(alpha = 0.2) +
+  facet_wrap(~ Continent)
+```
+
+# Conclusions
+
+The correlation between a *nation's level of development* and its *citizens' life expectancy* is undeniable. As demonstrated in the report above, an increase in Gross National Income (GNI) has proven to **enhance a nation's capacity to provide access to essential water services**, a fundamental determinant of public health. This report reflects an optimistic trend, where life expectancy is on the **rise** and access to clean water is becoming increasingly accessible in many regions. However, there remains a pressing need to *address disparities in less developed nations*. To foster continued progress, concerted efforts to boost citizens' wealth must be prioritized. By investing in economic growth and ensuring equitable distribution of resources, we can pave the way for improved health outcomes and greater well-being for all.
